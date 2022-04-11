@@ -121,9 +121,8 @@ class Computer():
                                 all_possible_moves.append(move)
         return all_possible_moves
 
-    def get_influence_matrix(self, gamestate, color):
-        """method to get influence per square"""
-        print("current player color", color)
+    def get_influence_matrix(self, gamestate):
+        """method to get influence per square, positive is bot influence, negative is players"""
         i_matrix = np.zeros([8,8])
         for i in range(8):
             for j in range(8):
@@ -132,12 +131,18 @@ class Computer():
                 influence_moves = gamestate.getInfluenceMoves(piece, start_sq)
                 if len(influence_moves) > 0:
                     for k in influence_moves:
-                        if piece[0]==color:
+                        if piece[0] == self.color:
                             i_matrix[k[0],k[1]] += 1
                         else:
                             i_matrix[k[0], k[1]] -= 1
         print(i_matrix)
         return i_matrix
+
+    def analyse_control(self, matrix):
+        """method to analyse who has more control over a square, positive means the bot has more control"""
+        boardcontrol = np.sum(matrix > 0) - np.sum(matrix < 0)
+        print(boardcontrol)
+        return boardcontrol
 
     def make_random_move(self, gamestate):
         move_start_end = random.choice(self.all_possible_moves)
@@ -148,6 +153,7 @@ class Computer():
         return move
 
     def evaluate_boardstate(self, gamestate, color):
+        ## COLOR is botcolor
         board_evaluation = 0
         bot_material = 0
         player_material = 0
@@ -263,11 +269,127 @@ class Computer():
 
         return board_evaluation
 
+    def evaluate_boardstate_new(self, gamestate):
+        ## COLOR is bot color
+        board_evaluation = 0
+        checkmate = False
+        if gamestate.wK_incheck or gamestate.bK_incheck:
+            checkmate = gamestate.checkForCheckmate()
+            print("in check in check in check")
+        if checkmate and gamestate.wK_incheck:
+            print("CHECKMATECHECKMATE")
+            if self.color == 'b':
+                board_evaluation = 9999
+            else:
+                board_evaluation = -9999
+        elif checkmate:
+            if self.color == 'w':
+                board_evaluation = 9999
+            else:
+                board_evaluation = -9999
+        else:
+            #### calc material difference, negative means the player has better material
+            material_difference = self._calc_material_difference(gamestate)
+            #### calc the control over the board
+            influence_matrix = self.get_influence_matrix(gamestate)
+            control = self.analyse_control(influence_matrix)
+            board_evaluation = material_difference + control *0.25
+
+        return board_evaluation
+
+    def _calc_material_difference(self, gamestate):
+        """method to calc the material difference, where pawns can be worth a lot more if they are passed or connected, color is botcolor"""
+        player_material = 0
+        bot_material = 0
+        for i in range(8):
+            for j in range(8):
+                ##### add to the boardstate if the color is the  bot color
+                if gamestate.board[i][j][0] == self.color:
+                    if gamestate.board[i][j][1] == 'Q':
+                        bot_material += 9
+                    elif gamestate.board[i][j][1] == 'R':
+                        bot_material += 5
+                    elif gamestate.board[i][j][1] == 'N':
+                        bot_material += 3
+                    elif gamestate.board[i][j][1] == 'B':
+                        bot_material += 3
+                    elif gamestate.board[i][j][1] == 'P':
+                        if 0 < j < 7:
+                            # TODO this wont work with making the bot white, if we ever want to do that
+                            if gamestate.board[i - 1][j - 1] == 'bP' or gamestate.board[i - 1][j + 1] == 'bP':
+                                pawn_chain_multiplier = 1.25
+                            elif gamestate.board[i - 1][j] == 'bP':
+                                pawn_chain_multiplier = 0.75
+                            else:
+                                pawn_chain_multiplier = 1
+                        elif gamestate.board[i - 1][j] == 'bP':
+                            pawn_chain_multiplier = 0.75
+                        else:
+                            pawn_chain_multiplier = 1
+                        ### check for passed pawns
+                        if 0 < j < 7:
+                            if "wP" not in (gamestate.board[:, j]) and "wP" not in (
+                            gamestate.board[:, j - 1]) and "wP" not in (gamestate.board[:, j + 1]):
+                                pawn_chain_multiplier = 2
+                        elif j == 0:
+                            if "wP" not in (gamestate.board[:, j]) and "wP" not in (gamestate.board[:, j + 1]):
+                                pawn_chain_multiplier = 2
+                        else:
+                            if "wP" not in (gamestate.board[:, j]) and "wP" not in (gamestate.board[:, j - 1]):
+                                pawn_chain_multiplier = 2
+                        bot_material += 1 * self.pawn_value_multiplier_b[i][j] * pawn_chain_multiplier
+                    elif gamestate.board[i][j][1] == 'K':
+                        print("nr moves in log:", len(gamestate.moves_log))
+                        if len(gamestate.moves_log) < 20:  # if in the first 30 moves
+                            bot_material += 100 * self.king_value_multiplier[i][j]
+                        else:
+                            bot_material += 100
+                ###### and substract if the color is that of the player
+                elif gamestate.board[i][j][0] != '-':
+                    if gamestate.board[i][j][1] == 'Q':
+                        player_material += 9
+                    elif gamestate.board[i][j][1] == 'R':
+                        player_material += 5
+                    elif gamestate.board[i][j][1] == 'N':
+                        player_material += 3
+                    elif gamestate.board[i][j][1] == 'B':
+                        player_material += 3
+                    elif gamestate.board[i][j][1] == 'P':
+                        if 0 < j < 7:
+                            if gamestate.board[i + 1][j - 1] == 'wP' or gamestate.board[i + 1][j + 1] == 'wP':
+                                pawn_chain_multiplier = 1.25
+                            elif gamestate.board[i + 1][j] == 'wP':
+                                pawn_chain_multiplier = 0.75
+                            else:
+                                pawn_chain_multiplier = 1
+                        elif gamestate.board[i + 1][j] == 'wP':
+                            pawn_chain_multiplier = 0.75
+                        else:
+                            pawn_chain_multiplier = 1
+                        ### check for passed pawns
+                        if 0 < j < 7:
+                            if "bP" not in (gamestate.board[:, j]) and "bP" not in (
+                            gamestate.board[:, j - 1]) and "bP" not in (gamestate.board[:, j + 1]):
+                                pawn_chain_multiplier = 2
+                        elif j == 0:
+                            if "bP" not in (gamestate.board[:, j]) and "bP" not in (gamestate.board[:, j + 1]):
+                                pawn_chain_multiplier = 2
+                        else:
+                            if "bP" not in (gamestate.board[:, j]) and "bP" not in (gamestate.board[:, j - 1]):
+                                pawn_chain_multiplier = 2
+                        player_material += 1 * self.pawn_value_multiplier_w[i][j] * pawn_chain_multiplier
+                    elif gamestate.board[i][j][1] == 'K':
+                        if len(gamestate.moves_log) < 20:  # if in the first 30 moves
+                            player_material += 100 * self.king_value_multiplier[i][j]
+                        else:
+                            player_material += 100
+        #### add a bonus for material difference, since that is typically the most important, especially for a bot
+        return bot_material - player_material
 
     def min_max_gamestate(self, gs, gs_small, color):
         if gs.depth < self.depth:
             ##### first find all possible moves
-            gs_small.influence_matrix = self.get_influence_matrix(gs,color)
+            gs_small.influence_matrix = self.get_influence_matrix(gs)
             gs_small.all_possible_moves = self.find_all_legal_moves(gs, color, gs_small.influence_matrix)
             print(len(gs_small.all_possible_moves))
             ##### give an evaluation of 9999 if checkmate
@@ -307,10 +429,10 @@ class Computer():
                         ##### ALSO add the possible moves to the outcome
                         if gs_small.depth % 2 == 0:
                             if len(new_gs_small.child_evaluations) > 0:
-                                new_gs_small.evaluation = max(new_gs_small.child_evaluations) #TODO add amount of negative squares here
+                                new_gs_small.evaluation = max(new_gs_small.child_evaluations)
                         else:
                             if len(new_gs_small.child_evaluations) > 0:
-                                new_gs_small.evaluation = min(new_gs_small.child_evaluations) #TODO add amount of negative squares here
+                                new_gs_small.evaluation = min(new_gs_small.child_evaluations)
                         #### append the newfound evaluation to the parents child_evalutaion (only if it has a parent)
                         if new_gs_small.parent_gs != None:
                             new_gs_small.parent_gs.child_evaluations.append(new_gs_small.evaluation)
@@ -343,7 +465,7 @@ class Computer():
         self.current_gamestate_evaluation = self.evaluate_boardstate(gs, self.color)
         self.min_max_gamestate(gs_copy, gs_small, self.color)
         index = gs_small.best_move_index
-        matrix = self.get_influence_matrix(gs, self.color)
+        matrix = self.get_influence_matrix(gs)
         all_possible_moves = self.find_all_legal_moves(gs, self.color, matrix)
         move_start = all_possible_moves[index][0]
         move_end = all_possible_moves[index][1]

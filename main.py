@@ -250,4 +250,5 @@ def drawLegalMoves(screen,legalSqs):
 
 
 if __name__ == "__main__":
+    #bot.analyse_control(bot.get_influence_matrix(Engine.GameState()))
     main()
