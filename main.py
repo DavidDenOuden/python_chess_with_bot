@@ -22,7 +22,7 @@ DRAW = p.transform.scale(p.image.load(os.path.join("Data", "graphics", "draw.png
 PLAYERCOLOR = 'w'
 BOTCOLOR = 'b'
 
-bot = Bot.Computer(BOTCOLOR, 4)
+bot = Bot.Computer(BOTCOLOR, 3)
 
 def loadImages():
     """load the images"""
@@ -196,7 +196,7 @@ def main():
                 move = bot.make_best_move(gs)
                 gs.makeMove(move, True)
                 gs.checkForPawnPromotion()
-                evaluation = bot.evaluate_boardstate(gs, 'b')
+                evaluation = bot.evaluate_boardstate_new(gs)
                 print(evaluation)
 
 

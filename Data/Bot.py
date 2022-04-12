@@ -101,12 +101,12 @@ class Computer():
         ])
         self.current_gamestate_evaluation = 0
 
-    def find_all_legal_moves(self, gamestate, color, matrix= None):
+    def find_all_legal_moves(self, gamestate, t_color, matrix= None):
         all_possible_moves = []
-        values = {'P' : 1, 'Q' : 9, 'R' : 5, 'N' : 3, 'B' : 3 , '-' : 0, 'K' : 1000}
+        values = {'P' : 1, 'Q' : 9, 'R' : 5, 'N' : 3, 'B' : 3 , '-' : 0, 'K' : 0}
         for i in range(8):
             for j in range(8):
-                if gamestate.board[i][j][0] != color:
+                if gamestate.board[i][j][0] !=t_color:
                     pass
                 else:
                     piece = gamestate.board[i][j]
@@ -141,7 +141,6 @@ class Computer():
     def analyse_control(self, matrix):
         """method to analyse who has more control over a square, positive means the bot has more control"""
         boardcontrol = np.sum(matrix > 0) - np.sum(matrix < 0)
-        print(boardcontrol)
         return boardcontrol
 
     def make_random_move(self, gamestate):
@@ -152,132 +151,13 @@ class Computer():
         move = Engine.Move(move_start, move_end, gamestate.board)
         return move
 
-    def evaluate_boardstate(self, gamestate, color):
-        ## COLOR is botcolor
-        board_evaluation = 0
-        bot_material = 0
-        player_material = 0
-        checkmate = False
-        if gamestate.wK_incheck or gamestate.bK_incheck:
-            checkmate = gamestate.checkForCheckmate()
-            print("in check in check in check")
-        if checkmate and gamestate.wK_incheck:
-            print("CHECKMATECHECKMATE")
-            if self.color == 'b':
-                board_evaluation = 9999
-            else:
-                board_evaluation = -9999
-        elif checkmate:
-            if self.color == 'w':
-                board_evaluation = 9999
-            else:
-                board_evaluation = -9999
-        else:
-            for i in range(8):
-                for j in range(8):
-                    ##### add to the boardstate if the color is the  bot color
-                    if gamestate.board[i][j][0] == color:
-                        if gamestate.board[i][j][1] == 'Q':
-                            board_evaluation += 9 * self.queen_value_multiplier[i][j]
-                            bot_material += 9
-                        elif gamestate.board[i][j][1] == 'R':
-                            board_evaluation += 5 * self.rook_value_multiplier_b[i][j]
-                            bot_material += 5
-                        elif gamestate.board[i][j][1] == 'N':
-                            board_evaluation += 3 * self.knight_value_multiplier[i][j]
-                            bot_material += 3
-                        elif gamestate.board[i][j][1] == 'B':
-                            board_evaluation += 3 * self.bishop_value_multiplier[i][j]
-                            bot_material += 3
-                        elif gamestate.board[i][j][1] == 'P':
-                            if 0 < j < 7:
-                                # TODO this wont work with making the bot white, if we ever want to do that
-                                if gamestate.board[i-1][j-1] == 'bP' or gamestate.board[i-1][j+1] == 'bP':
-                                    pawn_chain_multiplier = 1.5
-                                elif gamestate.board[i-1][j] == 'bP':
-                                    pawn_chain_multiplier = 0.5
-                                else:
-                                    pawn_chain_multiplier = 1
-                            elif gamestate.board[i - 1][j] == 'bP':
-                                pawn_chain_multiplier = 0.5
-                            else:
-                                pawn_chain_multiplier = 1
-                            ### check for passed pawns
-                            if 0 < j <  7:
-                                if "wP" not in (gamestate.board[:,j]) and "wP" not in (gamestate.board[:,j-1]) and "wP" not in (gamestate.board[:,j+1]):
-                                    pawn_chain_multiplier = 2
-                            elif j ==0:
-                                if "wP" not in (gamestate.board[:,j]) and "wP" not in (gamestate.board[:,j+1]):
-                                    pawn_chain_multiplier = 2
-                            else:
-                                if "wP" not in (gamestate.board[:,j]) and "wP" not in (gamestate.board[:,j-1]):
-                                    pawn_chain_multiplier = 2
-                            board_evaluation += 1 * self.pawn_value_multiplier_b[i][j] * pawn_chain_multiplier
-                            bot_material += 1
-                        elif gamestate.board[i][j][1] == 'K':
-                            print("nr moves in log:", len(gamestate.moves_log))
-                            if len(gamestate.moves_log) < 30: #if in the first 30 moves
-                                board_evaluation += 100 * self.king_value_multiplier[i][j]
-                            else:
-                                board_evaluation += 100
-                    ###### and substract if the color is that of the player
-                    elif gamestate.board[i][j][0] != '-':
-                        if gamestate.board[i][j][1] == 'Q':
-                            board_evaluation -= 9 * self.queen_value_multiplier[i][j]
-                            player_material += 9
-                        elif gamestate.board[i][j][1] == 'R':
-                            board_evaluation -= 5 * self.rook_value_multiplier_w[i][j]
-                            player_material += 5
-                        elif gamestate.board[i][j][1] == 'N':
-                            board_evaluation -= 3 * self.knight_value_multiplier[i][j]
-                            player_material += 3
-                        elif gamestate.board[i][j][1] == 'B':
-                            board_evaluation -= 3 * self.bishop_value_multiplier[i][j]
-                            player_material += 3
-                        elif gamestate.board[i][j][1] == 'P':
-                            if 0 < j < 7:
-                                if gamestate.board[i+1][j-1] == 'wP' or gamestate.board[i+1][j+1] == 'wP':
-                                    pawn_chain_multiplier = 1.5
-                                elif gamestate.board[i+1][j] == 'wP':
-                                    pawn_chain_multiplier = 0.5
-                                else:
-                                    pawn_chain_multiplier = 1
-                            elif gamestate.board[i + 1][j] == 'wP':
-                                pawn_chain_multiplier = 0.5
-                            else:
-                                pawn_chain_multiplier = 1
-                            ### check for passed pawns
-                            if 0 < j <  7:
-                                if "bP" not in (gamestate.board[:,j]) and "bP" not in (gamestate.board[:,j-1]) and "bP" not in (gamestate.board[:,j+1]):
-                                    pawn_chain_multiplier = 2
-                            elif j ==0:
-                                if "bP" not in (gamestate.board[:,j]) and "bP" not in (gamestate.board[:,j+1]):
-                                    pawn_chain_multiplier = 2
-                            else:
-                                if "bP" not in (gamestate.board[:,j]) and "bP" not in (gamestate.board[:,j-1]):
-                                    pawn_chain_multiplier = 2
-                            board_evaluation -= 1 * self.pawn_value_multiplier_w[i][j] * pawn_chain_multiplier
-                            player_material += 1
-                        elif gamestate.board[i][j][1] == 'K':
-                            if len(gamestate.moves_log) < 30:  # if in the first 30 moves
-                                board_evaluation -= 100 * self.king_value_multiplier[i][j]
-                            else:
-                                board_evaluation -= 100
-            #### add a bonus for material difference, since that is typically the most important, especially for a bot
-            material_difference = bot_material - player_material
-            board_evaluation = board_evaluation + 55 * material_difference
-
-        return board_evaluation
-
     def evaluate_boardstate_new(self, gamestate):
         ## COLOR is bot color
         board_evaluation = 0
         checkmate = False
         if gamestate.wK_incheck or gamestate.bK_incheck:
             checkmate = gamestate.checkForCheckmate()
-            print("in check in check in check")
         if checkmate and gamestate.wK_incheck:
-            print("CHECKMATECHECKMATE")
             if self.color == 'b':
                 board_evaluation = 9999
             else:
@@ -293,7 +173,7 @@ class Computer():
             #### calc the control over the board
             influence_matrix = self.get_influence_matrix(gamestate)
             control = self.analyse_control(influence_matrix)
-            board_evaluation = material_difference + control *0.25
+            board_evaluation = material_difference + control *0.1
 
         return board_evaluation
 
@@ -308,11 +188,12 @@ class Computer():
                     if gamestate.board[i][j][1] == 'Q':
                         bot_material += 9
                     elif gamestate.board[i][j][1] == 'R':
-                        bot_material += 5
+                        # TODO this wont work with making the bot white, if we ever want to do that
+                        bot_material += 5 * self.rook_value_multiplier_b[i][j]
                     elif gamestate.board[i][j][1] == 'N':
-                        bot_material += 3
+                        bot_material += 3 * self.knight_value_multiplier[i][j]
                     elif gamestate.board[i][j][1] == 'B':
-                        bot_material += 3
+                        bot_material += 3 * self.bishop_value_multiplier[i][j]
                     elif gamestate.board[i][j][1] == 'P':
                         if 0 < j < 7:
                             # TODO this wont work with making the bot white, if we ever want to do that
@@ -339,21 +220,20 @@ class Computer():
                                 pawn_chain_multiplier = 2
                         bot_material += 1 * self.pawn_value_multiplier_b[i][j] * pawn_chain_multiplier
                     elif gamestate.board[i][j][1] == 'K':
-                        print("nr moves in log:", len(gamestate.moves_log))
                         if len(gamestate.moves_log) < 20:  # if in the first 30 moves
-                            bot_material += 100 * self.king_value_multiplier[i][j]
+                            bot_material += 10 * self.king_value_multiplier[i][j]
                         else:
-                            bot_material += 100
+                            bot_material += 10
                 ###### and substract if the color is that of the player
                 elif gamestate.board[i][j][0] != '-':
                     if gamestate.board[i][j][1] == 'Q':
                         player_material += 9
                     elif gamestate.board[i][j][1] == 'R':
-                        player_material += 5
+                        player_material += 5 * self.rook_value_multiplier_w[i][j]
                     elif gamestate.board[i][j][1] == 'N':
-                        player_material += 3
+                        player_material += 3 * self.knight_value_multiplier[i][j]
                     elif gamestate.board[i][j][1] == 'B':
-                        player_material += 3
+                        player_material += 3 * self.bishop_value_multiplier[i][j]
                     elif gamestate.board[i][j][1] == 'P':
                         if 0 < j < 7:
                             if gamestate.board[i + 1][j - 1] == 'wP' or gamestate.board[i + 1][j + 1] == 'wP':
@@ -380,26 +260,31 @@ class Computer():
                         player_material += 1 * self.pawn_value_multiplier_w[i][j] * pawn_chain_multiplier
                     elif gamestate.board[i][j][1] == 'K':
                         if len(gamestate.moves_log) < 20:  # if in the first 30 moves
-                            player_material += 100 * self.king_value_multiplier[i][j]
+                            player_material += 10 * self.king_value_multiplier[i][j]
                         else:
-                            player_material += 100
+                            player_material += 10
         #### add a bonus for material difference, since that is typically the most important, especially for a bot
         return bot_material - player_material
 
-    def min_max_gamestate(self, gs, gs_small, color):
+    def min_max_gamestate(self, gs, gs_small):
         if gs.depth < self.depth:
+            if gs_small.depth % 2 == 1:
+                t_color = self.color
+            else:
+                t_color = self.player_color
             ##### first find all possible moves
             gs_small.influence_matrix = self.get_influence_matrix(gs)
-            gs_small.all_possible_moves = self.find_all_legal_moves(gs, color, gs_small.influence_matrix)
-            print(len(gs_small.all_possible_moves))
-            ##### give an evaluation of 9999 if checkmate
+            gs_small.all_possible_moves = self.find_all_legal_moves(gs, t_color, gs_small.influence_matrix)
+            ##### give an evaluation of 0 if len moves is 0
             if len(gs_small.all_possible_moves) == 0:
-                if color == self.player_color:
-                    gs_small.evaluation = 9999
+                print("the problem lies here")
+                if gs.checkForCheckmate():
+                    if t_color == self.player_color:
+                        gs_small.evaluation = 9999
+                    else:
+                        gs_small.evaluation = -9999
                 else:
-                    gs_small.evaluation = -9999
-            # elif gs_small.depth == 2 and self.evaluate_boardstate(gs, self.color) < self.current_gamestate_evaluation:
-                # pass #do nothing since this move is not promising
+                    gs_small.evaluation = -1000
             ##### if not check mate start the min max algorithm by making every move untill the specified depth is found
             else:
                 for i in gs_small.all_possible_moves:
@@ -407,24 +292,24 @@ class Computer():
                     if gs_small.parent_gs != None:
                         if  len(gs_small.parent_gs.child_evaluations)  > 0 and len(gs_small.child_evaluations) > 0:
                             if gs_small.child_evaluations != None and gs_small.parent_gs.child_evaluations != None:
-                                if min(gs_small.child_evaluations) < max(gs_small.parent_gs.child_evaluations):
-                                    break
+                                if gs_small.depth % 2 == 1:
+                                    if max(gs_small.child_evaluations) > min(gs_small.parent_gs.child_evaluations):
+                                        print("we are actually reaching this condition!!")
+                                        break
+                                else:
+                                    if min(gs_small.child_evaluations) < max(gs_small.parent_gs.child_evaluations):
+                                        print("we are actually reaching this condition!!")
+                                        break
                     ###### make the move
                     move_start = i[0]
                     move_end = i[1]
                     move = Engine.Move(move_start, move_end, gs.board)
                     gs.makeMove(move, True)
                     ##### make new small gamestate to capture all the info
-                    new_gs_small = SmallGs(gs_small, gs_small.depth + 1)
-                    if new_gs_small.depth != self.depth: # only go deeper if the depth is not yet reached
-                        #### determine the color that has to decide based on the depth even is always player uneven is bot
-                        if new_gs_small.depth % 2 == 1:
-                            color = self.color
-                        else:
-                            color = self.player_color
+                    if gs_small.depth +1 != self.depth: # only go deeper if the depth is not yet reached
+                        new_gs_small = SmallGs(gs_small, gs_small.depth + 1)
                         ##### recursive min max
-                        self.min_max_gamestate(gs, new_gs_small, color)
-                        print(new_gs_small.child_evaluations)
+                        self.min_max_gamestate(gs, new_gs_small)
                         ##### min max the value based on all the child evaluations of the small gamestate
                         ##### ALSO add the possible moves to the outcome
                         if gs_small.depth % 2 == 0:
@@ -434,21 +319,34 @@ class Computer():
                             if len(new_gs_small.child_evaluations) > 0:
                                 new_gs_small.evaluation = min(new_gs_small.child_evaluations)
                         #### append the newfound evaluation to the parents child_evalutaion (only if it has a parent)
+                        #new_gs_small.best_move_from_here = new_gs_small.child_moves[new_gs_small.best_move_index]
                         if new_gs_small.parent_gs != None:
                             new_gs_small.parent_gs.child_evaluations.append(new_gs_small.evaluation)
                     else: # this is what happens if the bottom is reached, the gamestate is actually evaluated
                         ####### possible alpha beta pruning
-                        if len(new_gs_small.parent_gs.child_evaluations) > 0 and len(new_gs_small.parent_gs.parent_gs.child_evaluations) >0:
-                            if max(new_gs_small.parent_gs.child_evaluations) > min(new_gs_small.parent_gs.parent_gs.child_evaluations): #alphabeta pruning
-                                pass
+                        if gs_small.depth % 2 == 1:
+                            if len(gs_small.child_evaluations) > 0 and len(gs_small.parent_gs.child_evaluations) > 0:
+                                if max(gs_small.child_evaluations) > min(
+                                        gs_small.parent_gs.child_evaluations):  # alphabeta pruning
+                                    print("we are actually reaching this even deeper condition!!")
+                                    pass
+                                else:
+                                    evaluation = self.evaluate_boardstate_new(gs)
+                                    gs_small.child_evaluations.append(evaluation)
                             else:
-                                evaluation = self.evaluate_boardstate(gs, self.color)
-                                new_gs_small.evaluation = evaluation
-                                new_gs_small.parent_gs.child_evaluations.append(evaluation)
+                                evaluation = self.evaluate_boardstate_new(gs)
+                                gs_small.child_evaluations.append(evaluation)
                         else:
-                            evaluation = self.evaluate_boardstate(gs, self.color)
-                            new_gs_small.evaluation = evaluation
-                            new_gs_small.parent_gs.child_evaluations.append(evaluation)
+                            if len(gs_small.child_evaluations) > 0 and len(gs_small.parent_gs.child_evaluations) >0:
+                                if min(gs_small.child_evaluations) < max(gs_small.parent_gs.child_evaluations): #alphabeta pruning
+                                    print("we are actually reaching this even deeper condition!!")
+                                    pass
+                                else:
+                                    evaluation = self.evaluate_boardstate_new(gs)
+                                    gs_small.child_evaluations.append(evaluation)
+                            else:
+                                evaluation = self.evaluate_boardstate_new(gs)
+                                gs_small.child_evaluations.append(evaluation)
                     ##### dont forget to undo the move
                     gs.undoMove()
                 if gs_small.depth == 1:
@@ -460,10 +358,10 @@ class Computer():
     def make_best_move(self, gs):
         # TODO if you can castle force it
         gs_copy = copy.deepcopy(gs)
-        gs_copy.depth = 1
         gs_small = SmallGs(None, 1)
-        self.current_gamestate_evaluation = self.evaluate_boardstate(gs, self.color)
-        self.min_max_gamestate(gs_copy, gs_small, self.color)
+        self.min_max_gamestate(gs_copy, gs_small)
+        print("best move evaluation:", max(gs_small.child_evaluations))
+        print(len(gs_small.child_evaluations), len(gs_small.all_possible_moves))
         index = gs_small.best_move_index
         matrix = self.get_influence_matrix(gs)
         all_possible_moves = self.find_all_legal_moves(gs, self.color, matrix)
