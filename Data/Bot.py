@@ -41,14 +41,14 @@ class Computer():
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         ])
         self.knight_value_multiplier = np.array([
-            [0.4, 0.6, 0.8, 0.8, 0.8, 0.8, 0.6, 0.4],
-            [0.6, 0.8, 1.0, 1.0, 1.0, 1.0, 0.8, 0.6],
+            [0.4, 0.7, 0.8, 0.8, 0.8, 0.8, 0.7, 0.4],
+            [0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 0.8, 0.7],
             [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
             [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
             [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
             [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
-            [0.6, 0.8, 1.0, 1.0, 1.0, 1.0, 0.8, 0.6],
-            [0.4, 0.6, 0.8, 0.8, 0.8, 0.8, 0.6, 0.4],
+            [0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 0.8, 0.7],
+            [0.4, 0.7, 0.8, 0.8, 0.8, 0.8, 0.7, 0.4],
         ])
         self.bishop_value_multiplier = np.array([
             [1.0, 0.6, 0.6, 0.8, 0.8, 0.6, 0.6, 1.0],
@@ -167,16 +167,16 @@ class Computer():
         two_aggro_moves = False
         for row in range(8):
             for column in range(8):
-                if (i_matrix[row][column] < 0 and rv_matrix[row][column] > 0) and (abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column])):
+                if (i_matrix[row][column] < 0 and rv_matrix[row][column] > 0) :#and (abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column])):
                     # add a punishment if your piece is unsufficiently defended
-                    punishment -= abs(rv_matrix[row][column])
-                elif (i_matrix[row][column] > 0 and rv_matrix[row][column] < 0) and abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column]):
+                    punishment -= abs(rv_matrix[row][column]) *0.5
+                elif (i_matrix[row][column] > 0 and rv_matrix[row][column] < 0) :#and abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column]):
                     # add a punishment if your piece is unsufficiently defended
-                    punishment += abs(rv_matrix[row][column])
+                    punishment += abs(rv_matrix[row][column]) *0.5
                 elif bp_matrix[row][column] > 0 and rv_matrix[row][column] < -1: #pawn aggro move
-                    punishment += abs(rv_matrix[row][column]) * 1
+                    punishment += abs(rv_matrix[row][column]) * 1 *0.5
                 elif pp_matrix[row][column] > 0 and rv_matrix[row][column] > 1: #pawn aggro move
-                    punishment -= abs(rv_matrix[row][column]) * 1
+                    punishment -= abs(rv_matrix[row][column]) * 1 *0.5
         if punishment != 0:
             print("THERES PUNISHMENT AND ITS", punishment)
         return punishment
@@ -240,21 +240,21 @@ class Computer():
                             if gamestate.board[i - 1][j - 1] == 'bP' or gamestate.board[i - 1][j + 1] == 'bP':
                                 pawn_chain_multiplier = 1.25
                             elif gamestate.board[i - 1][j] == 'bP':
-                                pawn_chain_multiplier = 0.75
+                                pawn_chain_multiplier = 0.9
                             else:
                                 pawn_chain_multiplier = 1
                         elif j == 0:
                             if gamestate.board[i - 1][j + 1] == 'bP':
                                 pawn_chain_multiplier = 1.25
                             elif gamestate.board[i - 1][j] == 'bP':
-                                pawn_chain_multiplier = 0.75
+                                pawn_chain_multiplier = 0.9
                             else:
                                 pawn_chain_multiplier = 1
                         else:
                             if gamestate.board[i - 1][j - 1] == 'bP':
                                 pawn_chain_multiplier = 1.25
                             elif gamestate.board[i - 1][j] == 'bP':
-                                pawn_chain_multiplier = 0.75
+                                pawn_chain_multiplier = 0.9
                             else:
                                 pawn_chain_multiplier = 1
                         ### check for passed pawns
@@ -290,21 +290,21 @@ class Computer():
                             if gamestate.board[i + 1][j - 1] == 'wP' or gamestate.board[i + 1][j + 1] == 'wP':
                                 pawn_chain_multiplier = 1.25
                             elif gamestate.board[i - 1][j] == 'wP':
-                                pawn_chain_multiplier = 0.75
+                                pawn_chain_multiplier = 0.9
                             else:
                                 pawn_chain_multiplier = 1
                         elif j == 0:
                             if gamestate.board[i + 1][j + 1] == 'wP':
                                 pawn_chain_multiplier = 1.25
                             elif gamestate.board[i + 1][j] == 'wP':
-                                pawn_chain_multiplier = 0.75
+                                pawn_chain_multiplier = 0.9
                             else:
                                 pawn_chain_multiplier = 1
                         else:
                             if gamestate.board[i + 1][j - 1] == 'wP':
                                 pawn_chain_multiplier = 1.25
                             elif gamestate.board[i + 1][j] == 'wP':
-                                pawn_chain_multiplier = 0.75
+                                pawn_chain_multiplier = 0.9
                             else:
                                 pawn_chain_multiplier = 1
                         ### check for passed pawns

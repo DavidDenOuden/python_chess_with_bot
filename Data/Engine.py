@@ -24,7 +24,7 @@ class GameState():
         self.board = np.array([
             ["bR", "--", "--", "bQ", "bK", "bB", "bN", "bR"],
             ["bP", "--", "bP", "--", "bP", "--", "bP", "bP"],
-            ["--", "bP", "bN", "bP", "--", "bN", "--", "--"],
+            ["--", "--", "bN", "bP", "bB", "bN", "--", "--"],
             ["--", "--", "--", "--", "bP", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
             ["--", "--", "wP", "wN", "wP", "--", "--", "--"],
@@ -659,12 +659,6 @@ class GameState():
             if i[1]== -1 or i[1]==8:
                 pass
             else:
-                if not recursion:
-                    check = self.isKingInCheck(position, i, color )
-                    if recursion == False and check == True:
-                        continue
-                    else:
-                        pass
                 if position[1] - i[1] == 0 and self.board[i[0]][i[1]] == '--':
                     if abs(position[0]-i[0]) == 1:
                         legal_moves.append(i)
@@ -703,12 +697,6 @@ class GameState():
         for i in possible_positions:
             if i[0] <0 or i[0]> 7 or i[1] < 0 or i[1]>7: #positions outside board bounds
                 continue
-            if recursion == False:
-                check = self.isKingInCheck(position, i, color)
-                if recursion == False and check == True:
-                    continue
-                else:
-                    legal_moves.append(i)
             else:
                 legal_moves.append(i)
         return legal_moves
@@ -723,12 +711,6 @@ class GameState():
             for j in range(1,8):
                 if position[0] + d[0]*j > 7 or position[0] + d[0]*j <0 or position[1] + d[1]*j > 7 or position[1] + d[1]*j <0: #out of bounds
                     break
-                if recursion == False:
-                    check = self.isKingInCheck(position, (position[0]+d[0]*j,position[1]+d[1]*j), color)
-                    if recursion == False and check == True:
-                        continue
-                    else:
-                        pass
                 if self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == color: #blocked by same color
                     legal_moves.append((position[0]+d[0]*j, position[1]+d[1]*j))
                     if self.board[position[0]+d[0]*j][position[1]+d[1]*j][1] == 'P':
@@ -763,12 +745,6 @@ class GameState():
             for j in range(1,8):
                 if position[0] + d[0]*j > 7 or position[0] + d[0]*j <0 or position[1] + d[1]*j > 7 or position[1] + d[1]*j <0: #out of bounds
                     break
-                if recursion == False:
-                    check = self.isKingInCheck(position, (position[0]+d[0]*j,position[1]+d[1]*j), color)
-                    if recursion == False and check == True:
-                        continue
-                    else:
-                        pass
                 if self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == color: #blocked by same color
                     legal_moves.append((position[0] + d[0] * j, position[1] + d[1] * j))
                     if self.board[position[0] + d[0] * j][position[1] + d[1] * j][1] != 'Q' and\
