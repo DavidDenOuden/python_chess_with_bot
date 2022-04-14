@@ -22,26 +22,34 @@ class GameState():
         ])
         """
         self.board = np.array([
-            ["--", "bN", "--", "bR", "bK", "--", "--", "--"],
-            ["--", "--", "--", "bP", "--", "--", "--", "--"],
+            ["bR", "--", "--", "bQ", "bK", "bB", "bN", "bR"],
+            ["bP", "--", "bP", "--", "bP", "--", "bP", "bP"],
+            ["--", "bP", "bN", "bP", "--", "bN", "--", "--"],
+            ["--", "--", "--", "--", "bP", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "wQ", "--", "--", "--", "--"],
-            ["--", "--", "--", "wQ", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "wP", "--", "--", "--", "wR", "--", "--"],
-            ["--", "--", "--", "wB", "wB", "wK", "wN", "wR"],
+            ["--", "--", "wP", "wN", "wP", "--", "--", "--"],
+            ["wP", "wP", "--", "--", "--", "wP", "wP", "wP"],
+            ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ])
 
-
-
+        self.board3 = np.array([
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "bP", "bP", "--", "--"],
+            ["bP", "bP", "--", "--", "--", "--", "--", "--"],
+            ["bP", "bP", "--", "wN", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "wN", "--"],
+            ["--", "--", "wP", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+        ])
         self.board2 = np.array([
-            ["bR", "bN", "bB", "bQ", "bK", "--", "--", "bR"],
-            ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
+            ["bR", "--", "--", "bQ", "bK", "bB", "bN", "bR"],
+            ["bP", "bP", "bP", "--", "bP", "--", "bP", "bP"],
+            ["--", "--", "bN", "bP", "bB", "bN", "--", "--"],
+            ["--", "--", "--", "--", "bP", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
+            ["--", "--", "wP", "wN", "wP", "--", "--", "--"],
+            ["wP", "wP", "--", "--", "--", "wP", "wP", "wP"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ])
         self.white_to_move = True
@@ -664,7 +672,7 @@ class GameState():
                         legal_moves.append(i)
                     elif color == 'b' and self.board[position[0] + 1][position[1]] == '--':
                         legal_moves.append(i)
-                if position[1] - i[1] != 0 and self.board[i[0]][i[1]] != '--':
+                if position[1] - i[1] != 0:
                     legal_moves.append(i)
                 # check for en passant
                 en_passant = self.checkForEnPassant()
@@ -706,15 +714,14 @@ class GameState():
         return legal_moves
 
     def bishopInfluenceMoves(self,color,position,recursion=False):
-        """method to get all the legal moves for the bischop, attacking own color allowed"""
+        """method to get all the legal moves for the bischop, attacking own color allowed, passing queen and bisshop too"""
         directions = [(-1,-1),(-1,+1),(+1,-1),(+1,+1)]
         legal_moves = []
+        pawn_encounter = False
+        skip_pawn_once = False
         for d in directions:
             for j in range(1,8):
                 if position[0] + d[0]*j > 7 or position[0] + d[0]*j <0 or position[1] + d[1]*j > 7 or position[1] + d[1]*j <0: #out of bounds
-                    break
-                elif self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == color: #blocked by same color
-                    legal_moves.append((position[0]+d[0]*j, position[1]+d[1]*j))
                     break
                 if recursion == False:
                     check = self.isKingInCheck(position, (position[0]+d[0]*j,position[1]+d[1]*j), color)
@@ -722,7 +729,16 @@ class GameState():
                         continue
                     else:
                         pass
-                if self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == 'w' and color == 'b': #blocked by opposite color
+                if self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == color: #blocked by same color
+                    legal_moves.append((position[0]+d[0]*j, position[1]+d[1]*j))
+                    if self.board[position[0]+d[0]*j][position[1]+d[1]*j][1] == 'P':
+                        # continue one square after a pawn
+                        pawn_encounter = True
+                    elif self.board[position[0]+d[0]*j][position[1]+d[1]*j][1] == 'Q' or self.board[position[0]+d[0]*j][position[1]+d[1]*j][1] == 'B': #continue if its a queen or a bisshop
+                        pass
+                    else:
+                        break
+                elif self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == 'w' and color == 'b': #blocked by opposite color
                     legal_moves.append((position[0]+d[0]*j, position[1]+d[1]*j))
                     break
                 elif self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == 'b' and color == 'w': #blocked by opposite color
@@ -732,18 +748,20 @@ class GameState():
                     legal_moves.append((position[0] + d[0] * j, position[1] + d[1] * j))
                 else:
                     break
+                if pawn_encounter:  # make sure the solution continues for one more round after a pawn of own color
+                    if skip_pawn_once:
+                        break
+                    else:
+                        skip_pawn_once = True
         return legal_moves
 
     def rookInfluenceMoves(self,color,position,recursion=False):
-        """method to get all the legal moves for the rook, attacking own color allowed"""
+        """method to get all the legal moves for the rook, attacking own color allowed, passing rook or queen too"""
         directions = [(0, -1), (0, +1), (+1, 0), (-1, 0)]
         legal_moves = []
         for d in directions:
             for j in range(1,8):
                 if position[0] + d[0]*j > 7 or position[0] + d[0]*j <0 or position[1] + d[1]*j > 7 or position[1] + d[1]*j <0: #out of bounds
-                    break
-                elif self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == color: #blocked by same color
-                    legal_moves.append((position[0] + d[0] * j, position[1] + d[1] * j))
                     break
                 if recursion == False:
                     check = self.isKingInCheck(position, (position[0]+d[0]*j,position[1]+d[1]*j), color)
@@ -751,7 +769,12 @@ class GameState():
                         continue
                     else:
                         pass
-                if self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == 'w' and color == 'b': #blocked by opposite color
+                if self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == color: #blocked by same color
+                    legal_moves.append((position[0] + d[0] * j, position[1] + d[1] * j))
+                    if self.board[position[0] + d[0] * j][position[1] + d[1] * j][1] != 'Q' and\
+                            self.board[position[0] + d[0] * j][position[1] + d[1] * j][1] != 'R' : # continue if its a rook or queen
+                        break
+                elif self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == 'w' and color == 'b': #blocked by opposite color
                     legal_moves.append((position[0]+d[0]*j, position[1]+d[1]*j))
                     break
                 elif self.board[position[0]+d[0]*j][position[1]+d[1]*j][0] == 'b' and color == 'w': #blocked by opposite color

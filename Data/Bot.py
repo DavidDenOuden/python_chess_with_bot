@@ -14,6 +14,7 @@ class Computer():
         self.color = color
         self.depth = depth
         self.depth_counter = 0
+        self.moves_considered = 0
         if self.color == 'b':
             self.player_color = 'w'
         else:
@@ -116,32 +117,69 @@ class Computer():
                         for k in legal_moves:
                             end_sq = k
                             target_piece = gamestate.board[end_sq[0]][end_sq[1]]
-                            if  piece[1] == 'P' or values[piece[1]] <= values[target_piece[1]] or target_piece[1] == '-' or (matrix[end_sq[0]][end_sq[1]] > 0): #TODO check the total value your attacking and attacking with, if your attacking value is lowe, overwrite the move with this move tow in material
-                                move = (start_sq,end_sq)
-                                all_possible_moves.append(move)
+                            #if  piece[1] == 'P' or values[piece[1]] <= values[target_piece[1]] or target_piece[1] == '-' or (matrix[end_sq[0]][end_sq[1]] > 0):
+                            move = (start_sq,end_sq)
+                            all_possible_moves.append(move)
         return all_possible_moves
 
     def get_influence_matrix(self, gamestate):
         """method to get influence per square, positive is bot influence, negative is players"""
+        values = {'P': 1, 'Q': 9, 'R': 5, 'N': 3, 'B': 3, '-': 0, 'K': 0}
         i_matrix = np.zeros([8,8])
+        iv_matrix = np.zeros([8, 8])
+        rv_matrix = np.zeros([8, 8])
+        bot_pawn_influence_matrix = np.zeros([8, 8])
+        player_pawn_influence_matrix = np.zeros([8, 8])
         for i in range(8):
             for j in range(8):
                 piece = gamestate.board[i][j]
+                if piece[0] == self.color:
+                    rv_matrix[i, j] += values[piece[1]]
+                elif piece[0] != '-':
+                    rv_matrix[i, j] -= values[piece[1]]
                 start_sq = (i, j)
                 influence_moves = gamestate.getInfluenceMoves(piece, start_sq)
                 if len(influence_moves) > 0:
                     for k in influence_moves:
                         if piece[0] == self.color:
-                            i_matrix[k[0],k[1]] += 1
-                        else:
+                            i_matrix[k[0], k[1]] += 1
+                            iv_matrix[k[0], k[1]] += values[piece[1]]
+                            if piece[1]=='P':
+                                bot_pawn_influence_matrix[k[0], k[1]] = 1
+                        elif piece[1] != '-':
                             i_matrix[k[0], k[1]] -= 1
-        print(i_matrix)
-        return i_matrix
+                            iv_matrix[k[0], k[1]] -= values[piece[1]]
+                            if piece[1]=='P':
+                                player_pawn_influence_matrix[k[0], k[1]] = 1
+        #print(i_matrix)
+        #print(iv_matrix)
+        #print(rv_matrix)
+        return (i_matrix,iv_matrix,rv_matrix,bot_pawn_influence_matrix,player_pawn_influence_matrix)
 
     def analyse_control(self, matrix):
         """method to analyse who has more control over a square, positive means the bot has more control"""
         boardcontrol = np.sum(matrix > 0) - np.sum(matrix < 0)
         return boardcontrol
+
+    def identify_weakspots(self, i_matrix, iv_matrix, rv_matrix, bp_matrix, pp_matrix):
+        """method to identify if there are any spots where material loss is evident, punishment negative means its not good for the bot, if its positive it means its not good for the player"""
+        punishment = 0
+        two_aggro_moves = False
+        for row in range(8):
+            for column in range(8):
+                if (i_matrix[row][column] < 0 and rv_matrix[row][column] > 0) and (abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column])):
+                    # add a punishment if your piece is unsufficiently defended
+                    punishment -= abs(rv_matrix[row][column])
+                elif (i_matrix[row][column] > 0 and rv_matrix[row][column] < 0) and abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column]):
+                    # add a punishment if your piece is unsufficiently defended
+                    punishment += abs(rv_matrix[row][column])
+                elif bp_matrix[row][column] > 0 and rv_matrix[row][column] < -1: #pawn aggro move
+                    punishment += abs(rv_matrix[row][column]) * 1
+                elif pp_matrix[row][column] > 0 and rv_matrix[row][column] > 1: #pawn aggro move
+                    punishment -= abs(rv_matrix[row][column]) * 1
+        if punishment != 0:
+            print("THERES PUNISHMENT AND ITS", punishment)
+        return punishment
 
     def make_random_move(self, gamestate):
         move_start_end = random.choice(self.all_possible_moves)
@@ -171,9 +209,11 @@ class Computer():
             #### calc material difference, negative means the player has better material
             material_difference = self._calc_material_difference(gamestate)
             #### calc the control over the board
-            influence_matrix = self.get_influence_matrix(gamestate)
+            matrix_tuple = self.get_influence_matrix(gamestate)
+            influence_matrix, ivalue_matrix, realvalue_matrix, bp_matrix, pp_matrix = matrix_tuple[0], matrix_tuple[1], matrix_tuple[2], matrix_tuple[3], matrix_tuple[4]
             control = self.analyse_control(influence_matrix)
-            board_evaluation = material_difference + control *0.1
+            punishment = self.identify_weakspots(influence_matrix,ivalue_matrix,realvalue_matrix, bp_matrix, pp_matrix)
+            board_evaluation = material_difference + control *0.1 + punishment
 
         return board_evaluation
 
@@ -203,21 +243,31 @@ class Computer():
                                 pawn_chain_multiplier = 0.75
                             else:
                                 pawn_chain_multiplier = 1
-                        elif gamestate.board[i - 1][j] == 'bP':
-                            pawn_chain_multiplier = 0.75
+                        elif j == 0:
+                            if gamestate.board[i - 1][j + 1] == 'bP':
+                                pawn_chain_multiplier = 1.25
+                            elif gamestate.board[i - 1][j] == 'bP':
+                                pawn_chain_multiplier = 0.75
+                            else:
+                                pawn_chain_multiplier = 1
                         else:
-                            pawn_chain_multiplier = 1
+                            if gamestate.board[i - 1][j - 1] == 'bP':
+                                pawn_chain_multiplier = 1.25
+                            elif gamestate.board[i - 1][j] == 'bP':
+                                pawn_chain_multiplier = 0.75
+                            else:
+                                pawn_chain_multiplier = 1
                         ### check for passed pawns
                         if 0 < j < 7:
                             if "wP" not in (gamestate.board[:, j]) and "wP" not in (
                             gamestate.board[:, j - 1]) and "wP" not in (gamestate.board[:, j + 1]):
-                                pawn_chain_multiplier = 2
+                                pawn_chain_multiplier *= 2
                         elif j == 0:
                             if "wP" not in (gamestate.board[:, j]) and "wP" not in (gamestate.board[:, j + 1]):
-                                pawn_chain_multiplier = 2
+                                pawn_chain_multiplier *= 2
                         else:
                             if "wP" not in (gamestate.board[:, j]) and "wP" not in (gamestate.board[:, j - 1]):
-                                pawn_chain_multiplier = 2
+                                pawn_chain_multiplier *= 2
                         bot_material += 1 * self.pawn_value_multiplier_b[i][j] * pawn_chain_multiplier
                     elif gamestate.board[i][j][1] == 'K':
                         if len(gamestate.moves_log) < 20:  # if in the first 30 moves
@@ -236,27 +286,38 @@ class Computer():
                         player_material += 3 * self.bishop_value_multiplier[i][j]
                     elif gamestate.board[i][j][1] == 'P':
                         if 0 < j < 7:
+                            # TODO this wont work with making the bot white, if we ever want to do that
                             if gamestate.board[i + 1][j - 1] == 'wP' or gamestate.board[i + 1][j + 1] == 'wP':
+                                pawn_chain_multiplier = 1.25
+                            elif gamestate.board[i - 1][j] == 'wP':
+                                pawn_chain_multiplier = 0.75
+                            else:
+                                pawn_chain_multiplier = 1
+                        elif j == 0:
+                            if gamestate.board[i + 1][j + 1] == 'wP':
                                 pawn_chain_multiplier = 1.25
                             elif gamestate.board[i + 1][j] == 'wP':
                                 pawn_chain_multiplier = 0.75
                             else:
                                 pawn_chain_multiplier = 1
-                        elif gamestate.board[i + 1][j] == 'wP':
-                            pawn_chain_multiplier = 0.75
                         else:
-                            pawn_chain_multiplier = 1
+                            if gamestate.board[i + 1][j - 1] == 'wP':
+                                pawn_chain_multiplier = 1.25
+                            elif gamestate.board[i + 1][j] == 'wP':
+                                pawn_chain_multiplier = 0.75
+                            else:
+                                pawn_chain_multiplier = 1
                         ### check for passed pawns
                         if 0 < j < 7:
                             if "bP" not in (gamestate.board[:, j]) and "bP" not in (
                             gamestate.board[:, j - 1]) and "bP" not in (gamestate.board[:, j + 1]):
-                                pawn_chain_multiplier = 2
+                                pawn_chain_multiplier *= 2
                         elif j == 0:
                             if "bP" not in (gamestate.board[:, j]) and "bP" not in (gamestate.board[:, j + 1]):
-                                pawn_chain_multiplier = 2
+                                pawn_chain_multiplier *= 2
                         else:
                             if "bP" not in (gamestate.board[:, j]) and "bP" not in (gamestate.board[:, j - 1]):
-                                pawn_chain_multiplier = 2
+                                pawn_chain_multiplier *= 2
                         player_material += 1 * self.pawn_value_multiplier_w[i][j] * pawn_chain_multiplier
                     elif gamestate.board[i][j][1] == 'K':
                         if len(gamestate.moves_log) < 20:  # if in the first 30 moves
@@ -273,8 +334,9 @@ class Computer():
             else:
                 t_color = self.player_color
             ##### first find all possible moves
-            gs_small.influence_matrix = self.get_influence_matrix(gs)
+            gs_small.influence_matrix = self.get_influence_matrix(gs)[0]
             gs_small.all_possible_moves = self.find_all_legal_moves(gs, t_color, gs_small.influence_matrix)
+            self.moves_considered += len(gs_small.all_possible_moves)
             ##### give an evaluation of 0 if len moves is 0
             if len(gs_small.all_possible_moves) == 0:
                 print("the problem lies here")
@@ -361,9 +423,10 @@ class Computer():
         gs_small = SmallGs(None, 1)
         self.min_max_gamestate(gs_copy, gs_small)
         print("best move evaluation:", max(gs_small.child_evaluations))
+        print("moves considered:", self.moves_considered)
         print(len(gs_small.child_evaluations), len(gs_small.all_possible_moves))
         index = gs_small.best_move_index
-        matrix = self.get_influence_matrix(gs)
+        matrix = self.get_influence_matrix(gs)[0]
         all_possible_moves = self.find_all_legal_moves(gs, self.color, matrix)
         move_start = all_possible_moves[index][0]
         move_end = all_possible_moves[index][1]
