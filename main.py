@@ -97,26 +97,33 @@ def main():
         ###game handle on promotion###
         if gs.promotion_next:
             if not player_to_move:
-                for e in p.event.get(): #get input from player
-                    if e.type == p.QUIT:
-                        running = False
-                    # show choices on screen
-                    if counter == 0: # only print the first time
-                        print('choose promotion, press 1 for Q, 2 for R, 3 for B and 4 for N')
-                        counter = 1
-                    if e.type == p.KEYDOWN:
-                        if e.key == p.K_1:
-                            gs.promotePawn('Q')
-                            gs.promotion_next = False
-                        elif e.key == p.K_2:
-                            gs.promotePawn('R')
-                            gs.promotion_next = False
-                        elif e.key == p.K_3:
-                            gs.promotePawn('B')
-                            gs.promotion_next = False
-                        elif e.key == p.K_4:
-                            gs.promotePawn('N')
-                            gs.promotion_next = False
+                print("trying to get player input")
+                loop = True
+                while loop:
+                    for e in p.event.get(): #get input from player
+                        if e.type == p.QUIT:
+                            running = False
+                        # show choices on screen
+                        if counter == 0: # only print the first time
+                            print('choose promotion, press 1 for Q, 2 for R, 3 for B and 4 for N')
+                            counter = 1
+                        if e.type == p.KEYDOWN:
+                            if e.key == p.K_1:
+                                gs.promotePawn('Q')
+                                gs.promotion_next = False
+                                loop = False
+                            elif e.key == p.K_2:
+                                gs.promotePawn('R')
+                                gs.promotion_next = False
+                                loop = False
+                            elif e.key == p.K_3:
+                                gs.promotePawn('B')
+                                gs.promotion_next = False
+                                loop = False
+                            elif e.key == p.K_4:
+                                gs.promotePawn('N')
+                                gs.promotion_next = False
+                                loop = False
             else: #automatic promote to queen
                 gs.promotePawn('Q')
                 gs.promotion_next = False

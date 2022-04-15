@@ -22,23 +22,23 @@ class GameState():
         ])
         """
         self.board = np.array([
-            ["bR", "--", "--", "bQ", "bK", "bB", "bN", "bR"],
-            ["bP", "--", "bP", "--", "bP", "--", "bP", "bP"],
-            ["--", "--", "bN", "bP", "bB", "bN", "--", "--"],
-            ["--", "--", "--", "--", "bP", "--", "--", "--"],
+            ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
+            ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "wP", "wN", "wP", "--", "--", "--"],
-            ["wP", "wP", "--", "--", "--", "wP", "wP", "wP"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["--", "--", "--", "--", "--", "--", "--", "--"],
+            ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ])
 
         self.board3 = np.array([
-            ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "bP", "bP", "--", "--"],
+            ["--", "--", "--", "bB", "bK", "--", "--", "--"],
+            ["--", "--", "bP", "bP", "bP", "bP", "--", "--"],
             ["bP", "bP", "--", "--", "--", "--", "--", "--"],
             ["bP", "bP", "--", "wN", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
-            ["--", "--", "--", "--", "--", "--", "wN", "--"],
+            ["--", "--", "--", "--", "--", "--", "wR", "--"],
             ["--", "--", "wP", "--", "--", "--", "--", "--"],
             ["--", "--", "--", "--", "--", "--", "--", "--"],
         ])
@@ -264,9 +264,9 @@ class GameState():
                             break
             return True
 
-    def checkForCheckmate(self):
+    def checkForCheckmate(self, forceblack = False):
         """method to check if the color to move is in checkmate"""
-        if self.white_to_move:
+        if self.white_to_move and not forceblack:
             color = 'w'
             self._isKingInCheck(self.wK_pos, color)
             if self.wK_incheck:
@@ -277,14 +277,13 @@ class GameState():
                             legal_moves = self.getLegalMoves(c, (i, j), False)
                             if len(legal_moves) >0:
                                 return False
-                                break
                 return True
             else:
                 return False
         else:
             color = 'b'
             self._isKingInCheck( self.bK_pos, color)
-            if self.bK_incheck:
+            if self.bK_incheck or forceblack:
                 for i, r in enumerate(self.board):
                     for j, c in enumerate(r):
                         if c[0] == color:
@@ -292,7 +291,6 @@ class GameState():
                             legal_moves = self.getLegalMoves(c, (i, j), False)
                             if len(legal_moves) >0:
                                 return False
-                                break
                 return True
 
     def _isKingInCheck(self,kingpos,color):

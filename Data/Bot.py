@@ -20,6 +20,7 @@ class Computer():
         else:
             self.player_color = 'b'
 
+        self.matrixes_updated = False
         self.pawn_value_multiplier_b = np.array([
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             [0.8, 0.9, 1.0, 1.1, 1.1, 1.0, 0.9, 0.8],
@@ -41,14 +42,14 @@ class Computer():
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         ])
         self.knight_value_multiplier = np.array([
-            [0.4, 0.7, 0.8, 0.8, 0.8, 0.8, 0.7, 0.4],
-            [0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 0.8, 0.7],
-            [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
-            [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
-            [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
-            [0.8, 1.0, 1.2, 1.2, 1.2, 1.2, 1.0, 0.8],
-            [0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 0.8, 0.7],
-            [0.4, 0.7, 0.8, 0.8, 0.8, 0.8, 0.7, 0.4],
+            [0.7, 0.8, 0.9, 0.9, 0.9, 0.9, 0.8, 0.7],
+            [0.8, 0.8, 1.0, 1.0, 1.0, 1.0, 0.9, 0.7],
+            [0.9, 1.0, 1.02, 1.0, 1.0, 1.02, 1.0, 0.9],
+            [0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9],
+            [0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9],
+            [0.9, 1.0, 1.02, 1.0, 1.0, 1.02, 1.0, 0.9],
+            [0.8, 0.8, 1.0, 1.0, 1.0, 1.0, 0.9, 0.8],
+            [0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 0.9, 0.7],
         ])
         self.bishop_value_multiplier = np.array([
             [1.0, 0.6, 0.6, 0.8, 0.8, 0.6, 0.6, 1.0],
@@ -61,7 +62,7 @@ class Computer():
             [1.0, 0.6, 0.6, 0.8, 0.8, 0.6, 0.6, 1.0],
         ])
         self.rook_value_multiplier_b = np.array([
-            [0.95, 1.0, 1.0, 1.05, 1.0, 1.05, 1.0, 0.95],
+            [1, 1.0, 1.0, 1.05, 1.0, 1.05, 1.0, 1],
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -78,7 +79,7 @@ class Computer():
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-            [0.95, 1.0, 1.0, 1.05, 1.0, 1.05, 1.0, 0.95],
+            [1, 1.0, 1.0, 1.05, 1.0, 1.05, 1.0, 1],
         ])
         self.king_value_multiplier = np.array([
             [1.0, 1.0, 1.01, 0.90, 1.0, 0.90, 1.01, 1.0],
@@ -154,6 +155,7 @@ class Computer():
         #print(i_matrix)
         #print(iv_matrix)
         #print(rv_matrix)
+        #print(bot_pawn_influence_matrix)
         return (i_matrix,iv_matrix,rv_matrix,bot_pawn_influence_matrix,player_pawn_influence_matrix)
 
     def analyse_control(self, matrix):
@@ -169,14 +171,14 @@ class Computer():
             for column in range(8):
                 if (i_matrix[row][column] < 0 and rv_matrix[row][column] > 0) :#and (abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column])):
                     # add a punishment if your piece is unsufficiently defended
-                    punishment -= abs(rv_matrix[row][column]) *0.5
+                    punishment -= abs(rv_matrix[row][column]) *0.44
                 elif (i_matrix[row][column] > 0 and rv_matrix[row][column] < 0) :#and abs(iv_matrix[row][column]) <= abs(rv_matrix[row][column]):
                     # add a punishment if your piece is unsufficiently defended
-                    punishment += abs(rv_matrix[row][column]) *0.5
+                    punishment += abs(rv_matrix[row][column]) *0.44
                 elif bp_matrix[row][column] > 0 and rv_matrix[row][column] < -1: #pawn aggro move
-                    punishment += abs(rv_matrix[row][column]) * 1 *0.5
+                    punishment += abs(rv_matrix[row][column]) * 1 *0.44
                 elif pp_matrix[row][column] > 0 and rv_matrix[row][column] > 1: #pawn aggro move
-                    punishment -= abs(rv_matrix[row][column]) * 1 *0.5
+                    punishment -= abs(rv_matrix[row][column]) * 1 *0.44
         if punishment != 0:
             print("THERES PUNISHMENT AND ITS", punishment)
         return punishment
@@ -205,6 +207,7 @@ class Computer():
                 board_evaluation = 9999
             else:
                 board_evaluation = -9999
+                print("BOARD EVALUTATION TO -9999")
         else:
             #### calc material difference, negative means the player has better material
             material_difference = self._calc_material_difference(gamestate)
@@ -213,7 +216,7 @@ class Computer():
             influence_matrix, ivalue_matrix, realvalue_matrix, bp_matrix, pp_matrix = matrix_tuple[0], matrix_tuple[1], matrix_tuple[2], matrix_tuple[3], matrix_tuple[4]
             control = self.analyse_control(influence_matrix)
             punishment = self.identify_weakspots(influence_matrix,ivalue_matrix,realvalue_matrix, bp_matrix, pp_matrix)
-            board_evaluation = material_difference + control *0.1 + punishment
+            board_evaluation = material_difference *2 + control *0.1 + punishment
 
         return board_evaluation
 
@@ -419,6 +422,9 @@ class Computer():
 
     def make_best_move(self, gs):
         # TODO if you can castle force it
+        self.update_depth(gs)
+        if len(gs.moves_log) > 30 and self.matrixes_updated == False:
+            self.update_matrix()
         gs_copy = copy.deepcopy(gs)
         gs_small = SmallGs(None, 1)
         self.min_max_gamestate(gs_copy, gs_small)
@@ -435,6 +441,93 @@ class Computer():
         if self.depth > 1 and gs_small.evaluation == 9999:
             self.depth -= 1
         return best_move
+
+    def update_depth(self, gs):
+        """function to make the computer smarter if theres room for it"""
+        values = {'P': 1, 'Q': 9, 'R': 5, 'N': 3, 'B': 3, '-': 0, 'K': 3}
+        total_value = 0
+        for row in range(8):
+            for column in range(8):
+                total_value += values[gs.board[row][column][1]]
+        if total_value < 15:
+            self.depth = 5
+        elif total_value < 27:
+            self.depth = 4
+        else:
+            self.depth = 3
+
+    def update_matrix(self):
+        """function to update the matrix once move 20 is hit (or 10 per side)"""
+        print("UPDATED MATRIX")
+        print("UPDATED MATRIX")
+        print("UPDATED MATRIX")
+        print("UPDATED MATRIX")
+        print("UPDATED MATRIX")
+        print("UPDATED MATRIX")
+        print("UPDATED MATRIX")
+        print("UPDATED MATRIX")
+
+        self.matrixes_updated = True
+        self.knight_value_multiplier = np.array([
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+        ])
+        self.bishop_value_multiplier = np.array([
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+        ])
+        self.rook_value_multiplier_b = np.array([
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1.02, 1.02, 1.02, 1.02, 1.02, 1.02, 1.02, 1.02],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+        ])
+        self.rook_value_multiplier_w = np.array([
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1.02, 1.02, 1.02, 1.02, 1.02, 1.02, 1.02, 1.02],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+        ])
+        self.king_value_multiplier = np.array([
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+        ])
+        self.queen_value_multiplier = np.array([
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+        ])
 
 class SmallGs():
     def __init__(self, parent_gs, depth):
