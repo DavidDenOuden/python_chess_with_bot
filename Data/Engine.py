@@ -32,6 +32,7 @@ class GameState():
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
         ])
 
+
         self.board3 = np.array([
             ["--", "--", "--", "bB", "bK", "--", "--", "--"],
             ["--", "--", "bP", "bP", "bP", "bP", "--", "--"],
